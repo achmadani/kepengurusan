@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Struktur Organisasi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- ===================== LOGIN ===================== -->
+  <section id="loginView" class="login-wrap">
+    <div class="login-card glass">
+      <div class="login-logo">
+        <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="5" r="2.4"/><circle cx="5" cy="19" r="2.4"/><circle cx="19" cy="19" r="2.4"/>
+          <path d="M12 7.4V12M12 12H5.5V16.6M12 12h6.5V16.6"/>
+        </svg>
+      </div>
+      <h1>Selamat Datang</h1>
+      <p class="muted">Masuk untuk mengelola struktur organisasi</p>
+      <form id="loginForm" autocomplete="off">
+        <label class="field">
+          <span>Username</span>
+          <input type="text" id="username" placeholder="admin" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" id="password" placeholder="••••••" required />
+        </label>
+        <div id="loginError" class="alert error hidden"></div>
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+          Masuk
+        </button>
+      </form>
+      <p class="hint muted">Default: <b>admin</b> / <b>admin</b></p>
+    </div>
+  </section>
+
+  <!-- ===================== APP ===================== -->
+  <div id="appView" class="hidden">
+    <header class="topbar glass">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="5" r="2.4"/><circle cx="5" cy="19" r="2.4"/><circle cx="19" cy="19" r="2.4"/>
+            <path d="M12 7.4V12M12 12H5.5V16.6M12 12h6.5V16.6"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <strong id="orgTitle">Struktur Organisasi</strong>
+          <small class="muted">Kepengurusan</small>
+        </div>
+      </div>
+
+      <nav class="tabs">
+        <button class="tab active" data-tab="dashboard">Struktur</button>
+        <button class="tab" data-tab="manage">Kelola Data</button>
+      </nav>
+
+      <div class="topbar-right">
+        <span class="user-chip"><span class="dot"></span> admin</span>
+        <button class="btn btn-ghost" id="logoutBtn">Keluar</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- Dashboard / Chart -->
+      <section id="dashboardTab" class="tab-panel">
+        <div class="panel-head">
+          <div>
+            <h2 id="chartTitle">Struktur Organisasi</h2>
+            <p class="muted">Visualisasi hierarki kepengurusan</p>
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-ghost" id="zoomOut" title="Perkecil">−</button>
+            <span id="zoomLabel" class="zoom-label">100%</span>
+            <button class="btn btn-ghost" id="zoomIn" title="Perbesar">+</button>
+            <button class="btn btn-primary" id="goManage">+ Tambah Anggota</button>
+          </div>
+        </div>
+
+        <div class="chart-scroll">
+          <div id="chart" class="orgchart"></div>
+          <div id="chartEmpty" class="empty hidden">
+            <p>Belum ada data struktur. Silakan tambahkan anggota.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Manage -->
+      <section id="manageTab" class="tab-panel hidden">
+        <div class="panel-head">
+          <div>
+            <h2>Kelola Data</h2>
+            <p class="muted">Tambah, ubah, atau hapus anggota &amp; jabatan</p>
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-ghost" id="editOrgBtn">Ubah Nama Organisasi</button>
+            <button class="btn btn-primary" id="addBtn">+ Tambah Anggota</button>
+          </div>
+        </div>
+
+        <div class="table-card glass">
+          <table id="membersTable">
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Jabatan</th>
+                <th>Atasan</th>
+                <th style="width:110px">Urutan</th>
+                <th style="width:130px">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="membersBody"></tbody>
+          </table>
+          <div id="tableEmpty" class="empty hidden"><p>Belum ada anggota.</p></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===================== MODAL ===================== -->
+  <div id="modal" class="modal-backdrop hidden">
+    <div class="modal glass">
+      <div class="modal-head">
+        <h3 id="modalTitle">Tambah Anggota</h3>
+        <button class="icon-btn" id="modalClose">&times;</button>
+      </div>
+      <form id="memberForm">
+        <input type="hidden" id="memberId" />
+        <label class="field">
+          <span>Nama Lengkap</span>
+          <input type="text" id="mName" placeholder="cth. Ahmad Dani" required />
+        </label>
+        <label class="field">
+          <span>Jabatan</span>
+          <input type="text" id="mPosition" placeholder="cth. Ketua Umum" required />
+        </label>
+        <div class="grid-2">
+          <label class="field">
+            <span>Atasan (Parent)</span>
+            <select id="mParent">
+              <option value="">— Puncak (tanpa atasan) —</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Urutan</span>
+            <input type="number" id="mSort" value="0" min="0" />
+          </label>
+        </div>
+        <label class="field">
+          <span>Foto / Avatar URL <small class="muted">(opsional)</small></span>
+          <input type="url" id="mPhoto" placeholder="https://..." />
+        </label>
+        <div id="formError" class="alert error hidden"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="cancelBtn">Batal</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Org-name modal -->
+  <div id="orgModal" class="modal-backdrop hidden">
+    <div class="modal glass sm">
+      <div class="modal-head">
+        <h3>Nama Organisasi</h3>
+        <button class="icon-btn" id="orgClose">&times;</button>
+      </div>
+      <form id="orgForm">
+        <label class="field">
+          <span>Nama</span>
+          <input type="text" id="orgNameInput" required />
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="orgCancel">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
