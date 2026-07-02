@@ -1,0 +1,23 @@
+<?php
+/**
+ * Contoh konfigurasi produksi.
+ *
+ * Cara pakai:
+ *   cp config.local.php.example config.local.php
+ *   lalu edit nilainya sesuai server.
+ *
+ * File config.local.php TIDAK ikut ke git (lihat .gitignore),
+ * jadi kredensial produksi tetap aman.
+ */
+return [
+    // Database (sesuaikan dengan hosting/VPS Anda)
+    'db_host' => '127.0.0.1',
+    'db_port' => 3306,
+    'db_name' => 'kepengurusan',
+    'db_user' => 'kepengurusan_user',
+    'db_pass' => 'ganti-dengan-password-kuat',
+
+    // Login aplikasi (WAJIB diganti di produksi)
+    'app_user' => 'admin',
+    'app_pass' => 'ganti-dengan-password-kuat',
+];

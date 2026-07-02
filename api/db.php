@@ -4,15 +4,33 @@
  * MySQL 8 on port 3308, user root, password toor.
  */
 
-const DB_HOST = '127.0.0.1';
-const DB_PORT = 3308;
-const DB_NAME = 'organinisasi';
-const DB_USER = 'root';
-const DB_PASS = 'toor';
+/*
+ * Configuration precedence (highest first):
+ *   1. api/config.local.php   (gitignored — easiest for shared hosting)
+ *   2. Environment variables  (ideal for VPS / Docker / CI)
+ *   3. Local dev defaults     (this laptop: php82 -S ... on MySQL :3308)
+ */
+$__cfg = is_file(__DIR__ . '/config.local.php')
+    ? (array) require __DIR__ . '/config.local.php'
+    : [];
 
-// App login credentials (as requested).
-const APP_USER = 'admin';
-const APP_PASS = 'admin';
+$__conf = static function (string $key, string $env, string $default) use ($__cfg): string {
+    if (array_key_exists($key, $__cfg) && $__cfg[$key] !== null) {
+        return (string) $__cfg[$key];
+    }
+    $v = getenv($env);
+    return $v !== false ? $v : $default;
+};
+
+define('DB_HOST', $__conf('db_host', 'DB_HOST', '127.0.0.1'));
+define('DB_PORT', (int) $__conf('db_port', 'DB_PORT', '3308'));
+define('DB_NAME', $__conf('db_name', 'DB_NAME', 'organinisasi'));
+define('DB_USER', $__conf('db_user', 'DB_USER', 'root'));
+define('DB_PASS', $__conf('db_pass', 'DB_PASS', 'toor'));
+
+// App login credentials — OVERRIDE THESE IN PRODUCTION!
+define('APP_USER', $__conf('app_user', 'APP_USER', 'admin'));
+define('APP_PASS', $__conf('app_pass', 'APP_PASS', 'admin'));
 
 function db(): PDO
 {
