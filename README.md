@@ -40,16 +40,24 @@ contoh struktur organisasi (bisa langsung diubah/dihapus).
 
 ## Struktur berkas
 
+Folder proyek ini **adalah** web root — tidak ada sub-folder `public/`.
+Ini sengaja dibuat begitu supaya mudah dideploy di server jenis apa pun
+(termasuk shared hosting yang DocumentRoot-nya tidak bisa diubah): tinggal
+upload semua isi ke `public_html`. Lihat [DEPLOY.md](DEPLOY.md) untuk detail
+dan cara mengamankan folder `api/`.
+
 ```
+index.html      UI
+style.css       Tampilan (glassmorphism, bagan CSS)
+app.js          Logika frontend (fetch API, render bagan, CRUD)
+.htaccess       Rewrite Apache: /api/* -> api/index.php, SPA fallback
 api/
   db.php        Koneksi PDO + auto-create schema + seed contoh
   index.php     REST API (login, members, settings)
-router.php      Router untuk PHP built-in server (API + static + SPA)
-public/
-  index.html    UI
-  style.css     Tampilan (glassmorphism, bagan CSS)
-  app.js        Logika frontend (fetch API, render bagan, CRUD)
-start.sh        Skrip menjalankan server
+  .htaccess     Blokir akses langsung ke db.php/config, hanya index.php
+  config.local.php.example   Template kredensial produksi
+router.php      Router untuk PHP built-in server (dev only)
+start.sh        Skrip menjalankan server (dev only)
 ```
 
 ## API ringkas

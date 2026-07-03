@@ -1,20 +1,20 @@
 # Panduan Deploy — Kepengurusan
 
-Aplikasi ini terdiri dari:
+Folder proyek ini **adalah** web root. Tidak ada sub-folder `public/` yang
+perlu diarahkan secara khusus — DocumentRoot server tinggal menunjuk ke
+folder proyek ini langsung. Ini dipilih supaya deploy semudah mungkin di
+berbagai jenis server, termasuk shared hosting yang DocumentRoot-nya
+sudah tetap ke `public_html`.
 
-- **`public/`** → web root (yang boleh diakses browser: `index.html`, `style.css`, `app.js`, `.htaccess`, `api.php`)
-- **`api/`** → logika API + koneksi database (**di luar** web root, tidak boleh diakses langsung)
-- **`router.php`** → hanya untuk pengembangan lokal (`php -S`), **tidak dipakai** di Apache/Nginx
-
-> Prinsip penting: di server sungguhan, **DocumentRoot diarahkan ke `public/`**,
-> bukan ke root proyek. Request `/api/*` dialihkan ke `public/api.php`
-> yang meneruskan ke `api/index.php`.
+Keamanan folder `api/` (berisi kredensial DB) tetap terjaga lewat
+`api/.htaccess`, yang hanya mengizinkan `api/index.php` dieksekusi —
+`db.php` dan `config.local.php` tidak bisa diakses langsung dari browser.
 
 ## Prasyarat server
 
 - PHP 8.2+ dengan ekstensi `pdo_mysql`, `mbstring`, `json`
 - MySQL 8 (atau MariaDB 10.4+)
-- Apache (mod_rewrite + mod_proxy_fcgi) **atau** Nginx + PHP-FPM
+- Apache dengan `mod_rewrite` **atau** Nginx + PHP-FPM
 
 ---
 
@@ -30,7 +30,8 @@ cp config.local.php.example config.local.php
 # lalu edit config.local.php: isi host/db/user/password + password admin
 ```
 
-File ini otomatis dibaca `db.php` dan **tidak ikut ke git**.
+File ini otomatis dibaca `db.php` dan **tidak ikut ke git**, serta tidak
+bisa diakses langsung lewat browser (diblokir `api/.htaccess`).
 
 ### Cara B — environment variables (cocok VPS / Docker)
 
@@ -58,25 +59,39 @@ FLUSH PRIVILEGES;
 
 ---
 
-## 2. VHost Apache lokal (`kepengurusan.test`)
+## 2. Shared hosting (cPanel / DirectAdmin) — cara paling mudah
 
-Ini versi **yang sudah diperbaiki** dari config-mu (perhatikan `DocumentRoot`
-menunjuk ke `public/` dan `Indexes` dihapus):
+Ini alasan utama struktur proyek dibuat flat:
+
+1. **Buat database** lewat *MySQL Databases*: buat DB, user, password, lalu
+   *Add User To Database* dengan *ALL PRIVILEGES*.
+2. **Upload semua isi proyek** langsung ke `public_html` (atau
+   `public_html/nama-domain` untuk addon domain) — tidak perlu mengatur
+   ulang Document Root sama sekali.
+3. Buat `api/config.local.php` (salin dari `.example`) berisi kredensial DB
+   dari langkah 1 — biasanya host `localhost`, port `3306`.
+4. Pastikan versi PHP di *Select PHP Version* = **8.2**, ekstensi `pdo_mysql`
+   aktif, `mod_rewrite` aktif (default di hampir semua hosting cPanel).
+5. Buka domain → login. Tabel dibuat otomatis.
+
+> `.htaccess` di root dan di `api/` sudah disiapkan dan ikut ter-upload —
+> tidak perlu konfigurasi tambahan di panel hosting.
+
+---
+
+## 3. VHost Apache lokal (`kepengurusan.test`)
 
 ```apache
 <VirtualHost *:8080>
     ServerName kepengurusan.test
+    DocumentRoot "/Users/yayan/Work/personal/organinisasi"
 
-    # PENTING: arahkan ke folder public/, bukan root proyek
-    DocumentRoot "/Users/yayan/Work/personal/organinisasi/public"
-
-    <Directory "/Users/yayan/Work/personal/organinisasi/public">
+    <Directory "/Users/yayan/Work/personal/organinisasi">
         Options FollowSymLinks          # tanpa Indexes
-        AllowOverride All               # agar .htaccess aktif (rewrite)
+        AllowOverride All               # agar .htaccess (rewrite) aktif
         Require all granted
     </Directory>
 
-    # Kirim file .php ke PHP-FPM 8.2 (port sesuai punyamu)
     <FilesMatch \.php$>
         SetHandler "proxy:fcgi://127.0.0.1:9082"
     </FilesMatch>
@@ -86,16 +101,12 @@ menunjuk ke `public/` dan `Indexes` dihapus):
 </VirtualHost>
 ```
 
-Perubahan dari config-mu:
-| Semula | Diperbaiki | Alasan |
-|--------|-----------|--------|
-| `DocumentRoot .../organinisasi` | `.../organinisasi/public` | jangan ekspos `.git`, `api/`, `db.php` |
-| `Options Indexes FollowSymLinks` | `Options FollowSymLinks` | matikan listing folder |
-| (tanpa .htaccess) | butuh `.htaccess` di `public/` | routing `/api` + SPA fallback |
+DocumentRoot kini langsung ke root proyek — tidak ada lagi sub-folder
+`public/` untuk diarahkan.
 
 ### Langkah mengaktifkan (Homebrew Apache di macOS)
 
-1. Pastikan modul aktif di `httpd.conf` (uncomment baris ini):
+1. Pastikan modul aktif di `httpd.conf`:
    ```apache
    LoadModule rewrite_module lib/httpd/modules/mod_rewrite.so
    LoadModule proxy_module lib/httpd/modules/mod_proxy.so
@@ -117,7 +128,7 @@ Perubahan dari config-mu:
 
 ---
 
-## 3. VPS produksi — Apache
+## 4. VPS produksi — Apache
 
 ```bash
 # 1. Install (Ubuntu/Debian)
@@ -138,9 +149,9 @@ VHost `/etc/apache2/sites-available/kepengurusan.conf`:
 ```apache
 <VirtualHost *:80>
     ServerName kepengurusan.example.com
-    DocumentRoot /var/www/kepengurusan/public
+    DocumentRoot /var/www/kepengurusan
 
-    <Directory /var/www/kepengurusan/public>
+    <Directory /var/www/kepengurusan>
         Options FollowSymLinks
         AllowOverride All
         Require all granted
@@ -161,7 +172,7 @@ sudo certbot --apache -d kepengurusan.example.com
 
 ---
 
-## 4. VPS produksi — Nginx (alternatif)
+## 5. VPS produksi — Nginx (alternatif)
 
 `/etc/nginx/sites-available/kepengurusan`:
 
@@ -169,12 +180,12 @@ sudo certbot --apache -d kepengurusan.example.com
 server {
     listen 80;
     server_name kepengurusan.example.com;
-    root /var/www/kepengurusan/public;
+    root /var/www/kepengurusan;
     index index.html;
 
-    # API -> front controller
+    # API -> api/index.php (URI asli dipertahankan untuk routing internal)
     location /api/ {
-        try_files $uri /api.php$is_args$args;
+        rewrite ^/api(/.*)?$ /api/index.php last;
     }
 
     location ~ \.php$ {
@@ -183,12 +194,16 @@ server {
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
 
-    # SPA fallback
+    # SPA fallback (halaman non-API)
     location / {
         try_files $uri $uri/ /index.html;
     }
 
-    # jangan sajikan file tersembunyi
+    # db.php & config.local.php tidak boleh diakses langsung
+    location ~ ^/api/(db\.php|config\.local\.php.*)$ { deny all; }
+
+    # jangan sajikan file dev/dokumentasi & tersembunyi
+    location ~ \.(md|sh|log|example)$ { deny all; }
     location ~ /\. { deny all; }
 }
 ```
@@ -200,31 +215,13 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ---
 
-## 5. Shared hosting (cPanel / DirectAdmin)
-
-1. **Buat database** lewat *MySQL Databases*: buat DB, user, password, lalu
-   *Add User To Database* dengan *ALL PRIVILEGES*.
-2. **Upload** isi proyek ke luar `public_html` (mis. `~/kepengurusan`), lalu:
-   - Arahkan Document Root domain/subdomain ke `~/kepengurusan/public`
-     (menu *Domains* → *Document Root*), **atau**
-   - Jika tak bisa ubah Document Root: pindahkan isi `public/` ke `public_html/`,
-     taruh folder `api/` di atas `public_html`, dan sesuaikan `require` di
-     `public_html/api.php` menjadi `require '../api/index.php';`.
-3. Buat `api/config.local.php` (salin dari `.example`) berisi kredensial DB dari
-   langkah 1 — biasanya host `localhost`, port `3306`.
-4. Pastikan versi PHP di *Select PHP Version* = **8.2**, ekstensi `pdo_mysql` aktif.
-5. Buka domain → login. Tabel dibuat otomatis.
-
-> Catatan: `.htaccess` sudah disiapkan di `public/` untuk hosting berbasis Apache
-> (mayoritas shared hosting). Tidak perlu `router.php` di produksi.
-
----
-
 ## 6. Checklist keamanan sebelum go-live
 
 - [ ] Ganti `app_pass` (login admin) — jangan `admin/admin`.
 - [ ] Ganti kredensial DB, pakai user khusus (bukan `root`).
-- [ ] DocumentRoot = `public/` (folder `api/`, `.git/`, `db.php` tak terekspos).
+- [ ] `api/.htaccess` (Apache) atau blok `deny` (Nginx) aktif — pastikan
+      `api/db.php` dan `api/config.local.php` mengembalikan 403 jika diakses
+      langsung dari browser.
 - [ ] `Options -Indexes` (tidak ada directory listing).
 - [ ] Aktifkan HTTPS (Let's Encrypt).
 - [ ] `config.local.php` tidak ikut git (sudah di `.gitignore`).
@@ -236,8 +233,9 @@ sudo nginx -t && sudo systemctl reload nginx
 
 | Gejala | Penyebab & solusi |
 |--------|-------------------|
-| CSS/JS 404 | DocumentRoot belum ke `public/`. |
-| `/api/*` balikan HTML/404 | `mod_rewrite` mati / `AllowOverride All` belum aktif. |
+| CSS/JS 404 | Pastikan `.htaccess` ikut ter-upload (beberapa FTP client menyembunyikan file berawalan titik — aktifkan "show hidden files"). |
+| `/api/*` balikan HTML/404 | `mod_rewrite` mati / `AllowOverride All` belum aktif di `<Directory>`. |
+| Buka `/api/db.php` malah jalan | `api/.htaccess` tidak ter-upload atau `AllowOverride` tidak mengizinkan `Require`. |
 | 500 saat buka | Cek log Apache/FPM; sering karena kredensial DB salah di `config.local.php`. |
 | "Kesalahan server" JSON | Koneksi MySQL gagal (host/port/user/izin `CREATE TABLE`). |
 | Login gagal terus | Session/cookie — pastikan diakses via 1 host yang sama (bukan campur IP & domain). |

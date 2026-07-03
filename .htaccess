@@ -1,0 +1,44 @@
+# =====================================================================
+#  Kepengurusan — konfigurasi Apache
+#  Folder proyek ini ADALAH web root (DocumentRoot langsung ke sini).
+#  Cocok untuk shared hosting yang tidak bisa mengubah DocumentRoot
+#  ke sub-folder — cukup upload semua isi ke public_html.
+# =====================================================================
+
+Options -Indexes
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Jangan pernah sajikan folder .git dkk lewat rewrite
+    RewriteRule ^\.(git|github)(/|$) - [F,L]
+
+    # /api/*  ->  api/index.php (REQUEST_URI asli dipakai api/index.php untuk routing)
+    RewriteRule ^api(/.*)?$ api/index.php [L,QSA]
+
+    # SPA fallback: path yang bukan file/direktori nyata -> index.html
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# Berkas dev/dokumentasi tidak perlu bisa diakses langsung dari browser
+<FilesMatch "\.(md|sh|log|example)$">
+    Require all denied
+</FilesMatch>
+<Files "router.php">
+    Require all denied
+</Files>
+
+# Tolak akses ke file tersembunyi (.env, .gitignore, dll)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Cache aset statis (opsional, mempercepat)
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|svg|png|jpg|jpeg|gif|woff2?)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+</IfModule>
