@@ -2,6 +2,17 @@
 # dieksekusi langsung (dipanggil lewat rewrite /api/* di .htaccess root).
 # db.php dan config.local.php* TIDAK boleh diakses langsung dari browser.
 
+# Karena "api" adalah folder yang benar-benar ada, LiteSpeed mencocokkan
+# request seperti /api/login memakai konteks .htaccess folder ini (relatif,
+# "login"), BUKAN rule "^api(/.*)?$" di .htaccess root. Rule reroute jadi
+# perlu didefinisikan ulang di sini juga: semua path yang bukan file nyata
+# di folder ini diarahkan ke index.php.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
 <FilesMatch "\.php$">
     Require all denied
 </FilesMatch>

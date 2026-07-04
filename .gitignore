@@ -12,3 +12,4 @@ api/config.local.php
 
 # Logs / temp
 *.log
+.last-deploy

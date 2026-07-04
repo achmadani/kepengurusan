@@ -1,0 +1,14 @@
+---
+# Konfigurasi deployment cPanel Git Version Control.
+#
+# Repository Path di cPanel = Document Root subdomain itu sendiri, jadi
+# `git pull`/checkout SUDAH membuat isi repo ini langsung menjadi web root —
+# tidak perlu task salin (cp/rsync) ke folder lain.
+#
+# Task di bawah hanya menulis stempel waktu ke file tersembunyi (diblokir
+# dari akses browser oleh .htaccess) supaya ada bukti deploy terakhir
+# berhasil jalan, sekaligus memenuhi syarat cPanel bahwa `deployment.tasks`
+# harus berisi minimal satu perintah.
+deployment:
+  tasks:
+    - /bin/date > .last-deploy
