@@ -79,6 +79,46 @@ Ini alasan utama struktur proyek dibuat flat:
 
 ---
 
+## 2b. Shared hosting via cPanel Git Version Control
+
+Kalau hosting hanya menyediakan cPanel + Git Version Control (tanpa
+akses upload manual/FTP yang nyaman, seperti Biznet), pakai fitur
+**Git™ Version Control** di cPanel. Ada file `.cpanel.yml` di root
+repo yang menjalankan task deployment otomatis setiap klik
+**Deploy HEAD Commit**.
+
+**Langkah:**
+
+1. cPanel → **Git™ Version Control** → **Create** → isi *Clone URL*
+   (`https://github.com/achmadani/kepengurusan.git`) dan *Repository Path*
+   bebas (mis. `/home/USER/kepengurusan` atau langsung ke Document Root).
+2. **PENTING — cek Document Root sebenarnya** di cPanel → **Domains**
+   (atau **Subdomains**), lihat kolom **Document Root** untuk domain/subdomain
+   tujuan. Path ini **bisa berbeda** dari *Repository Path* yang kamu isi di
+   langkah 1 — keduanya folder terpisah kecuali sengaja disamakan.
+3. Edit `.cpanel.yml` di repo (baris `export DEPLOYPATH=...`) agar sesuai
+   Document Root sebenarnya dari langkah 2, lalu commit & push.
+4. Di cPanel: **Update from Remote** (menarik commit terbaru ke Repository
+   Path) → **Deploy HEAD Commit** (menjalankan task, menyalin file ke
+   DEPLOYPATH).
+5. Buat `api/config.local.php` **langsung di dalam DEPLOYPATH** (path Document
+   Root, bukan Repository Path) — file ini tidak pernah ikut git (gitignored),
+   jadi harus dibuat manual sekali via File Manager, isi kredensial DB Biznet.
+6. Buka domain → login.
+
+> **Kalau Repository Path == Document Root** (satu folder yang sama), task
+> penyalinan di atas jadi tidak perlu — cukup `.cpanel.yml` berisi satu task
+> apa saja (mis. `/bin/date > .last-deploy`) untuk memenuhi syarat cPanel
+> bahwa `deployment.tasks` tidak boleh kosong, karena `git checkout` sendiri
+> sudah menaruh file langsung ke Document Root.
+
+**Kesalahan umum:** setelah "Deploy HEAD Commit" sukses tapi file tidak
+muncul di folder Document Root — hampir selalu berarti *Repository Path*
+dan *Document Root* adalah dua folder berbeda, dan `.cpanel.yml` belum (atau
+salah) menyalin ke folder yang benar. Cek ulang path di cPanel → Domains.
+
+---
+
 ## 3. VHost Apache lokal (`kepengurusan.test`)
 
 ```apache

@@ -1,14 +1,23 @@
 ---
 # Konfigurasi deployment cPanel Git Version Control.
 #
-# Repository Path di cPanel = Document Root subdomain itu sendiri, jadi
-# `git pull`/checkout SUDAH membuat isi repo ini langsung menjadi web root —
-# tidak perlu task salin (cp/rsync) ke folder lain.
+# PENTING: "Repository Path" (tempat cPanel melakukan git checkout) TIDAK
+# selalu sama dengan Document Root subdomain yang benar-benar dilayani web
+# server — keduanya bisa jadi folder yang berbeda meski namanya mirip
+# (mis. /home/USER/beta.sinau.biz.id vs /home/USER/public_html/beta.sinau.biz.id).
+# Cek path pasti lewat cPanel > Domains/Subdomains, kolom "Document Root".
 #
-# Task di bawah hanya menulis stempel waktu ke file tersembunyi (diblokir
-# dari akses browser oleh .htaccess) supaya ada bukti deploy terakhir
-# berhasil jalan, sekaligus memenuhi syarat cPanel bahwa `deployment.tasks`
-# harus berisi minimal satu perintah.
+# Karena itu, task di bawah menyalin file dari hasil checkout ke
+# DEPLOYPATH (Document Root sebenarnya) setiap kali "Deploy HEAD Commit"
+# dijalankan. Dibuat memakai /bin/cp (bukan rsync) supaya tidak bergantung
+# pada binari tambahan yang belum tentu tersedia di shared hosting.
+#
+# api/config.local.php SENGAJA tidak ikut disalin (memang tidak pernah ada
+# di git checkout — file itu di-gitignore) — buat manual sekali langsung
+# di DEPLOYPATH/api/config.local.php setelah deploy pertama.
 deployment:
   tasks:
-    - /bin/date > .last-deploy
+    - export DEPLOYPATH=/home/sinaubiz/public_html/beta.sinau.biz.id/
+    - /bin/cp -R api $DEPLOYPATH
+    - /bin/cp index.html style.css app.js .htaccess $DEPLOYPATH
+    - /bin/date > $DEPLOYPATH.last-deploy
