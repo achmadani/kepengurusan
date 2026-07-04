@@ -73,3 +73,6 @@ start.sh        Skrip menjalankan server (dev only)
 | DELETE | `/api/members/{id}` | Hapus anggota (+bawahannya)   |
 | GET    | `/api/settings`     | Ambil pengaturan (nama org)   |
 | PUT    | `/api/settings`     | Ubah nama organisasi          |
+
+Dokumentasi lengkap tiap endpoint (body request, contoh respons sukses &
+gagal, semua status code) ada di [API.md](API.md).
